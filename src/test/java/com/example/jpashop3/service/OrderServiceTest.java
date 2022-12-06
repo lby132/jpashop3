@@ -5,6 +5,7 @@ import com.example.jpashop3.domain.Member;
 import com.example.jpashop3.domain.Order;
 import com.example.jpashop3.domain.OrderStatus;
 import com.example.jpashop3.domain.item.Book;
+import com.example.jpashop3.exception.NotEnoughStockException;
 import com.example.jpashop3.repository.OrderRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,16 +54,30 @@ class OrderServiceTest {
         final Member member = createMember();
         final Book book = createBook("시골 JPA", 10000, 10);
 
-        int orderCount = 2;
+        int orderCount = 11;
 
-        orderService.order(member.getId(), book.getId(), orderCount);
+        final NotEnoughStockException thrown = assertThrows(NotEnoughStockException.class, () -> {
+            orderService.order(member.getId(), book.getId(), orderCount);
+        });
 
-
+        assertEquals("need more stock", thrown.getMessage());
     }
 
     @Test
     void 주문취소() throws Exception {
+        final Member member = createMember();
+        final Book item = createBook("시골 JPA", 10000, 10);
 
+        int orderCount = 2;
+
+        final Long orderId = orderService.order(member.getId(), item.getId(), orderCount);
+
+        orderService.cancelOrder(orderId);
+
+        final Order getOrder = orderRepository.findOne(orderId);
+
+        assertEquals(OrderStatus.CANCEL, getOrder.getStatus());
+        assertEquals(10, item.getStockQuantity());
     }
 
 
